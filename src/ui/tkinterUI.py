@@ -6,18 +6,24 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 
 # 假设 workflow 函数放在上级目录的 workflow.py 中
-from ..workflow import workflow
+from ..workflow import ProcessWorkFlow
+from ..asr import ASREngine
+from ..config import cfg
 
 
 class TkinterInterface:
-    def __init__(self, root=None):
+    def __init__(self, root=None, cfg=cfg):
         # Use ttkbootstrap 
         self.root = ttk.Window(themename="cosmo", title="视频翻译工具", resizable=(False, False))
-        self.rec_txt = ""
-        self.translated_txt = ""
+        self.build_ui()
+        
+        self.asr_engine = ASREngine(model_path=cfg.asr_model_path, device='cuda')
+        self.workflow = None
+    
+    def build_ui(self):
 
         # 窗口居中
-        self.center_window(1000, 650)
+        self.center_window(1500, 950)
 
         # ------------------ 顶部：文件选择 ------------------
         top = ttk.Frame(self.root, padding=10)
@@ -27,12 +33,35 @@ class TkinterInterface:
         ttk.Entry(top, textvariable=self.file_path_var, width=80).pack(side=LEFT, fill=X, expand=True, padx=(0, 10))
         ttk.Button(top, text="选择文件", command=self.select_file, bootstyle=PRIMARY).pack(side=LEFT)
 
-        # ------------------ 中部：结果显示 ------------------
+        # ---------- 中部：左右分栏 ----------
         mid = ttk.Frame(self.root, padding=10)
         mid.pack(fill=BOTH, expand=YES)
 
-        self.result_text = ScrolledText(mid, state=DISABLED, font=("微软雅黑", 12), height=15, wrap=WORD)
+        # 左侧：原文+译文文本框
+        left = ttk.Labelframe(mid, text="识别 & 翻译结果", padding=5)
+        left.pack(side=LEFT, fill=BOTH, expand=YES, padx=(0, 5))
+
+        self.result_text = ScrolledText(left, state=DISABLED, font=("微软雅黑", 12), wrap=WORD)
         self.result_text.pack(fill=BOTH, expand=YES)
+
+        # 右侧：视频预览 + 信息 + 进度条
+        right = ttk.Labelframe(mid, text="视频预览", padding=5)
+        right.pack(side=LEFT, fill=BOTH, expand=YES)
+
+        # 1) 视频预览（用 Label 充当画布）
+        self.video_lbl = ttk.Label(right, text="暂无预览", anchor=CENTER, bootstyle=SECONDARY)
+        self.video_lbl.pack(fill=BOTH, expand=YES)
+
+        # 2) 视频信息
+        info_frame = ttk.Frame(right)
+        info_frame.pack(fill=X, pady=(5, 0))
+
+        self.info_lbl = ttk.Label(info_frame, text="时长: -- | 编码: -- | 分辨率: --", font=("微软雅黑", 9))
+        self.info_lbl.pack(side=LEFT)
+
+        # 3) 进度条
+        self.progress = ttk.Progressbar(right, orient=HORIZONTAL, mode="determinate", bootstyle=SUCCESS)
+        self.progress.pack(fill=X, pady=(5, 0))
 
         # ------------------ 底部：按钮区 ------------------
         btm = ttk.Frame(self.root, padding=10)
@@ -61,10 +90,12 @@ class TkinterInterface:
     def select_file(self):
         path = filedialog.askopenfilename(
             title="选择视频文件",
-            filetypes=[("视频文件", "*.mp4 *.avi *.mkv *.mov *.flv")]
+            filetypes=[("视频文件", "*.mp4 *.avi *.mkv *.mov")]
         )
         if path:
             self.file_path_var.set(path)
+            self.workflow = ProcessWorkFlow(video_path=path)
+            self.update_video_info(self.workflow.video_duration, self.workflow.video_fps)
             self.__clean_text_result()
 
     def start_task(self):
@@ -79,8 +110,10 @@ class TkinterInterface:
         threading.Thread(target=self.run_detection, args=(video_path,), daemon=True).start()
 
     def run_detection(self, video_path):
+        
         try:
-            rec_txt, translated_txt = workflow(video_path)
+            rec_txt, translated_txt = self.workflow.run_workflow(ASREngine=self.asr_engine, progress_callback=self.progress_callback)
+            self.root.after(0, lambda: self.write_log("处理完成！\n"))
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror("错误", f"处理失败：{e}"))
             self.root.after(0, lambda: self.start_btn.config(state=NORMAL))
@@ -101,6 +134,14 @@ class TkinterInterface:
         self.result_text.insert(END, f"\n【原文】\n{rec_txt}\n\n【译文】\n{translated_txt}\n")
         self.result_text.text.config(state=DISABLED)
         self.start_btn.config(state=NORMAL)
+        
+        
+    def progress_callback(self, progress, status):
+        self.progress['value'] = progress
+        self.write_log(f"{status} ({progress}%)\n")
+        
+    def update_video_info(self, duration, fps):
+        self.info_lbl.config(text=f"时长: {duration:.2f}秒 | 帧率: {fps} FPS | 分辨率: --")
 
     def __clean_text_result(self):
         self.result_text.text.config(state=NORMAL)

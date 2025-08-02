@@ -5,7 +5,7 @@ import tempfile
 class BaseAudioExtractor:
     
     @staticmethod
-    def extract(video_path: str, start_time: float = None, end_time: float = None, save_audio_path = None) -> str:
+    def extract(video_path: str = None, v_clip: moviepy.VideoFileClip = None, start_time: float = None, end_time: float = None, save_audio_path = None) -> str:
         '''
         ### 提取视频中的一段音频
         :param video_path:      视频文件的路径
@@ -14,7 +14,11 @@ class BaseAudioExtractor:
         :param save_audio_path: 保存音频的路径。如果为 None，存储为 tempfile
         '''
         
-        v_clip = moviepy.VideoFileClip(video_path)
+        assert (video_path or v_clip) and not (video_path and v_clip), "请提供视频文件路径或 moviepy.VideoFileClip 对象，但不能同时提供两者。"
+        
+        if v_clip is None:
+            v_clip = moviepy.VideoFileClip(video_path)
+            
         v_dur = v_clip.duration
         
         if start_time is None:
