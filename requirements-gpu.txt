@@ -4,3 +4,4 @@ funasr==1.2.6
 filelock==3.18.0
 requests
 loguru
+ttkbootstrap==1.14.2
