@@ -1,0 +1,6 @@
+moviepy==2.2.1
+modelscope==1.28.1
+funasr==1.2.6
+filelock==3.18.0
+requests
+loguru
