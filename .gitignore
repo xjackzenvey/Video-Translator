@@ -1,5 +1,6 @@
 .vscode
 __pycache__
 models/*
-*.build
-*.dist
+*build
+*dist
+*.spec

@@ -77,6 +77,7 @@ class TkinterInterface:
         self.copy_trans_btn.pack(side=LEFT, padx=5)
 
         ttk.Button(btm, text="清空结果", command=self.__clean_text_result, bootstyle=WARNING).pack(side=RIGHT)
+        ttk.Button(btm, text="关于", command=self.show_about_window, bootstyle=INFO).pack(side=RIGHT, padx=5)
 
     # ------------------ 业务方法 ------------------
     def center_window(self, width, height):
@@ -108,6 +109,33 @@ class TkinterInterface:
         self.__clean_text_result()
         self.write_log(f"正在处理视频：{video_path}\n")
         threading.Thread(target=self.run_detection, args=(video_path,), daemon=True).start()
+        
+        
+    def show_about_window(self):
+        about_win = ttk.Toplevel(self.root)
+        about_win.title("关于")
+        about_win.geometry("400x300")
+        about_win.resizable(False, False)
+        self.center_child_window(about_win, 400, 300)
+
+        ttk.Label(about_win, text="视频翻译工具", font=("微软雅黑", 16, "bold")).pack(pady=10)
+        ttk.Label(about_win, text="版本：v1.0.0 Beta", font=("微软雅黑", 12)).pack()
+        ttk.Label(about_win, text="作者：白色鱼鱼喵", font=("微软雅黑", 10)).pack(pady=5)
+
+        link_frame = ttk.Frame(about_win)
+        link_frame.pack(pady=20)
+
+        ttk.Label(link_frame, text="项目主页：").grid(row=0, column=0, sticky=E)
+        github_link = ttk.Label(link_frame, text="GitHub", foreground="blue", cursor="hand2")
+        github_link.grid(row=0, column=1, sticky=W, padx=5)
+        github_link.bind("<Button-1>", lambda e: self.open_link("https://github.com/xjackzenvey/video-translator"))
+
+        ttk.Label(link_frame, text="B站：").grid(row=1, column=0, sticky=E)
+        bilibili_link = ttk.Label(link_frame, text="哔哩哔哩", foreground="blue", cursor="hand2")
+        bilibili_link.grid(row=1, column=1, sticky=W, padx=5)
+        bilibili_link.bind("<Button-1>", lambda e: self.open_link("https://space.bilibili.com/3546793577024347"))
+
+        ttk.Button(about_win, text="关闭", command=about_win.destroy, bootstyle=DANGER).pack(pady=10)
 
     def run_detection(self, video_path):
         
@@ -135,6 +163,21 @@ class TkinterInterface:
         self.result_text.text.config(state=DISABLED)
         self.start_btn.config(state=NORMAL)
         
+    def open_link(self, url):
+        import webbrowser
+        webbrowser.open(url)
+        
+        
+    def center_child_window(self, child, width, height):
+        parent_x = self.root.winfo_x()
+        parent_y = self.root.winfo_y()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        
+        x = parent_x + (parent_w - width) // 2
+        y = parent_y + (parent_h - height) // 2
+        
+        child.geometry(f"{width}x{height}+{x}+{y}")
         
     def progress_callback(self, progress, status):
         self.progress['value'] = progress

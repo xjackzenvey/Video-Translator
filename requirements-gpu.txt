@@ -5,3 +5,4 @@ filelock==3.18.0
 requests
 loguru
 ttkbootstrap==1.14.2
+PyQt-Fluent-Widgets
