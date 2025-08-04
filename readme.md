@@ -11,11 +11,20 @@
 
 ```
 # 安装 Python 依赖包
-pip install -r requirements.txt  # CPU 版本
-pip install -r requirements-gpu.txt  # GPU 版本
+
+# CPU 版本
+pip install -r requirements.txt  
+
+# GPU 版本
+pip install -r requirements-gpu.txt  
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
 
 # 使用 modelscope 下载 日语ASR 模型
 modelscope download --model iic/speech_UniASR_asr_2pass-ja-16k-common-vocab93-tensorflow1-offline --local_dir models/asr_model
+
+# 启动
+python launch.py
 
 ```
 
